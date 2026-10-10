@@ -1423,6 +1423,10 @@ class TestSchedule(unittest.TestCase):
     t = Tensor([1.0, 2.0, 3.0]) ** 8
     self.assertEqual(self._alu_from_tensor(t), [Ops.MUL, Ops.MUL, Ops.MUL])
 
+  def test_abs_pow_2_has_mul_only(self):
+    t = Tensor([1.0, 2.0, 3.0]).abs() ** 2
+    self.assertEqual(self._alu_from_tensor(t), [Ops.MUL])
+
   def test_any_has_no_alu(self):
     t = Tensor([True, False, True]).any()
     self.assertEqual(self._alu_from_tensor(t), [])

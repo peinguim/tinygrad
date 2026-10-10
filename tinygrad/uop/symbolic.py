@@ -124,6 +124,7 @@ symbolic_simple = pm_data_invalid + PatternMatcher([
   (UPat.var("x") // -1, lambda x: -x), # x//-1 -> -x
   ((UPat.var("x") ^ UPat.var("y")) ^ UPat.var("y"), lambda x,y: x), # (x^y)^y -> x
   ((UPat.var() % UPat.var("y")).named("base") % UPat.var("y"), lambda base,y: base),  # (x%y)%y = -> x%y (rewritten with base for speed)
+  ((UPat.var("x") != UPat.var("y")).where(UPat.var("x"), UPat.var("y")), lambda x,y: x), # x!=y ? x : y -> x
   # variations of (x%c)+(x//c)*c = x
   (UPat(Ops.ADD, dtype=dtypes.weakint, name="x"), fold_add_divmod_recombine),
   (UPat.var("x", dtype=dtypes.bool) & UPat.cvar("c"), lambda x,c: x if c.val else c),

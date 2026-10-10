@@ -914,7 +914,7 @@ class ElementwiseMixin(CreationMixin):
     print(Tensor([-3., -2., -1., 0., 1., 2., 3.]).abs().numpy())
     ```
     """
-    return self * self.sign()
+    return (self < 0).where(-self, self.ne(0).where(self, self.const_like(0)))
 
   def tan(self) -> Self:
     """

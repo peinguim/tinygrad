@@ -269,6 +269,9 @@ symbolic = symbolic_simple+commutative+PatternMatcher([
    lambda y,c,t,tt,f,ff: y+c.where(t+tt, f+ff) if t.op == tt.op == Ops.CONST or f.op == ff.op == Ops.CONST else None),
   # complementary zero branches under the same condition select directly
   (UPat.var("c").where(UPat.var("t"), 0) + UPat.var("c").where(0, UPat.var("f")), lambda c,t,f: c.where(t, f)),
+  # fold double negations in mul under the same condition
+  *((UPat.var("c").where(w, x) * UPat.var("c").where(y, z), lambda c, w, x, y, z: c.where(w, x) * c.where(y, z))
+   for w,x,y,z in ((-UPat.var("w"), UPat.var("x"), -UPat.var("y"), UPat.var("z")), (UPat.var("w"), -UPat.var("x"), UPat.var("y"), -UPat.var("z")))),
   # ALU/variable min==max -> CONST
   (UPat({Ops.CMPLT, Ops.CMPNE, Ops.FLOORDIV, Ops.FLOORMOD, Ops.PARAM, Ops.AFTER, Ops.SPECIAL}, name="x"),
    lambda x: x.const_like(x.vmin) if x.dtype is not dtypes.void and x.vmin == x.vmax else None),

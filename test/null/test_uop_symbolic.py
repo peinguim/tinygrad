@@ -1013,15 +1013,15 @@ class TestSymbolic(unittest.TestCase):
 
     # not combining because it increased total ALU
     cc = cond.where(c, c+1)
-    self.helper_test_variable(bb+cc, 0, 7, "((x<2).where(b, 1)+(x<2).where(c, (c+1)))")
+    self.helper_test_variable(bb+cc, 0, 6, "(x<2).where(b+c, c+2)")
 
     # not combining  # TODO: can combine if it can further simplify?
     ab = cond.where(a, b)
     ba = cond.where(b, a)
-    self.helper_test_variable(ab+ba, 0, 6, "((x<2).where(a, b)+(x<2).where(b, a))")
+    self.helper_test_variable(ab+ba, 0, 6, "a+b")
 
     # not combining  # TODO: can combine if one is identity element const
-    self.helper_test_variable(aa+ab, 0, 6, "((x<2).where(a, b)+(x<2).where(a, 0))")
+    self.helper_test_variable(aa+ab, 0, 6, "(x<2).where(2*a, b)")
 
   def test_where_combine_cross_zero(self):
     cond = Variable("x", 0, 3) < 2

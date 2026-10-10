@@ -261,15 +261,17 @@ symbolic = symbolic_simple+commutative+PatternMatcher([
   (UPat.var("a").where(UPat.var("b").where(UPat.var("c"), UPat.var("d")), UPat.var("d")), lambda a,b,c,d: (a&b).where(c,d)),
   # a.where(c, b.where(c, d)) -> (a | b).where(c, d)
   (UPat.var("a").where(UPat.var("c"), UPat.var("b").where(UPat.var("c"), UPat.var("d"))), lambda a,b,c,d: (a|b).where(c,d)),
-  # alu of two where with same conds can combine, only do if true branch or false branch is const, or fold if both branches evaluate to the same value
+  # alu of two where with same conds can combine, only do if true branch or false branch is const
   (UPat(GroupOp.Binary, name="alu", src=(UPat.var("c").where(UPat.var("t"), UPat.var("f")), UPat.var("c").where(UPat.var("tt"), UPat.var("ff")))), \
-   lambda alu,c,t,tt,f,ff: c.where(t.alu(alu.op, tt), f.alu(alu.op, ff)) if t.op == tt.op == Ops.CONST or f.op == ff.op == Ops.CONST else \
-    rt if (rt:=t.alu(alu.op, tt).simplify()) == (rf:=f.alu(alu.op, ff).simplify()) else c.where(rt,rf)),
+   lambda alu,c,t,tt,f,ff: c.where(t.alu(alu.op, tt), f.alu(alu.op, ff)) if t.op == tt.op == Ops.CONST or f.op == ff.op == Ops.CONST else None),
   # if its a plus we add the associative variation too
   ((UPat.var("y")+UPat.var("c").where(UPat.var("t"), UPat.var("f"))) + UPat.var("c").where(UPat.var("tt"), UPat.var("ff")), \
    lambda y,c,t,tt,f,ff: y+c.where(t+tt, f+ff) if t.op == tt.op == Ops.CONST or f.op == ff.op == Ops.CONST else None),
   # complementary zero branches under the same condition select directly
   (UPat.var("c").where(UPat.var("t"), 0) + UPat.var("c").where(0, UPat.var("f")), lambda c,t,f: c.where(t, f)),
+  # fold double negations in mul under the same condition
+  *((UPat.var("c").where(w, x) * UPat.var("c").where(y, z), lambda c, w, x, y, z: c.where(w, x) * c.where(y, z))
+   for w,x,y,z in ((-UPat.var("w"), UPat.var("x"), -UPat.var("y"), UPat.var("z")), (UPat.var("w"), -UPat.var("x"), UPat.var("y"), -UPat.var("z")))),
   # ALU/variable min==max -> CONST
   (UPat({Ops.CMPLT, Ops.CMPNE, Ops.FLOORDIV, Ops.FLOORMOD, Ops.PARAM, Ops.AFTER, Ops.SPECIAL}, name="x"),
    lambda x: x.const_like(x.vmin) if x.dtype is not dtypes.void and x.vmin == x.vmax else None),

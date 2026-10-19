@@ -1148,6 +1148,16 @@ class TestSymbolic(unittest.TestCase):
     expr = cond.where(Variable("t", 0, 3), a.valid(cond))
     self.assertIs(graph_rewrite(expr, sym), cond.where(Variable("t", 0, 3), UOp.invalid()))
 
+  def test_where_closure_up_to_index(self):
+    # test where closure folds up to index and no further
+    a,b,c,d,e,f = (Variable(c, 0, 3) for c in "abcdef")
+    buf = UOp.param(0, dtypes.bool, 17)
+    ridx = Variable("ridx", 0, 31)
+    cond = ridx < 17
+    load = buf.index(ridx.valid(cond))
+    expr = cond.where(cond.where(load.where(a, b), c), cond.where(d, load.where(e, f)))
+    self.assertIs(graph_rewrite(expr, sym), cond.where(load.where(a, b), load.where(e, f)))
+
   def test_symbolic_div(self):
     # from symbolic arange
     a = Variable("a", 1, 10)

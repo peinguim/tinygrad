@@ -1,7 +1,7 @@
 # all of symbolic lives here now
 import math
 from collections import defaultdict
-from tinygrad.uop.ops import Ops, PatternMatcher, UPat, UOp, GroupOp, exec_alu, promo_dtype
+from tinygrad.uop.ops import Ops, PatternMatcher, UPat, UOp, GroupOp, exec_alu, promo_dtype, BottomUpGate
 from tinygrad.dtype import PyConst, ConstFloat, dtypes, can_lossless_cast, Invalid, bitcast, truncate
 from tinygrad.helpers import partition, all_same, prod, flatten, IMAGE, dedup, ceildiv
 from tinygrad.uop.divandmod import div_and_mod_symbolic
@@ -230,12 +230,12 @@ commutative = PatternMatcher([
   (UPat(GroupOp.Commutative, dtype=dtypes.weakint, name='x'), lambda x: x.replace(src=x.src[::-1]) if x.src[1].tuplize < x.src[0].tuplize else None),
 ])
 
+index_bottom_up_gate = PatternMatcher([(UPat(Ops.INDEX), lambda: (_ for _ in ()).throw(BottomUpGate))])
 def fold_where_closure(cond:UOp, t:UOp, f:UOp) -> UOp|None:
   """in cond.where(t, f), cond is True within t and False within f"""
   if cond not in t.bool_slice and cond not in f.bool_slice: return None
   # INDEX gates are owned by the valid/store-coalescing machinery, leave them alone
-  if any(u.op_in_backward_slice_with_self(Ops.INDEX) for u in (cond, t, f)): return None
-  return cond.where(t.substitute({cond: cond.const_like(True)}), f.substitute({cond: cond.const_like(False)}))
+  return cond.where(*[tf.substitute({cond: cond.const_like(b)}, extra_pm=index_bottom_up_gate) for tf,b in [(t,True), (f,False)]])
 
 symbolic = symbolic_simple+commutative+PatternMatcher([
   # ** boolean algebra **
